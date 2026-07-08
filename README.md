@@ -1,124 +1,278 @@
 # SAE Feature Dashboard
 
-Multi-model Sparse Autoencoder (SAE) feature visualization dashboard.  
-Powered by **TransformerLens** + **SAELens** with HuggingFace fallback.
+Multi-model Sparse Autoencoder (SAE) feature visualization dashboard.
+
+This project compares SAE feature activations across several language models and
+layers. A user enters a prompt in the React dashboard, selects up to three model
+SAE configurations, and the FastAPI backend extracts residual-stream
+activations, encodes them with SAELens, and returns global and per-token feature
+reports.
+
+All real model execution is expected to run inside the GPU pod. Local execution
+is useful for reading code, editing the UI/API, and building images, but the
+full TransformerLens / HuggingFace / SAELens path should be treated as pod-only.
 
 ---
 
-## Project Structure
+## Current Project Scope
 
-```
-SAEdemo/
+The repository now contains the main interactive dashboard only:
+
+```text
+Sparse_autoencoder_web/
 ├── backend/
-│   ├── main.py          # FastAPI app + HTTP routes (thin layer)
-│   ├── registry.py      # ★ Model registry — edit this to add new models
-│   ├── pipeline.py      # Analysis engine: dual-path activation extraction
-│   ├── config.py        # Constants (CONCEPT_LABELS) + shared utilities
-│   └── requirements.txt
+│   ├── main.py              # FastAPI app, dependency detection, HTTP routes
+│   ├── pipeline.py          # SAE analysis engine and mock fallback
+│   ├── registry.py          # Model and SAE registry
+│   ├── neuronpedia.py       # Optional Neuronpedia label lookup
+│   ├── config.py            # Shared helpers and VRAM cleanup
+│   ├── requirements.txt     # Backend Python dependencies
+│   └── concept2token/       # Local feature_id -> label JSON files
 ├── frontend/
 │   ├── src/
-│   │   ├── App.jsx
-│   │   ├── constants.js         # API_BASE + per-model color tokens
-│   │   ├── components/
-│   │   │   ├── ControlPanel.jsx
-│   │   │   ├── LoadingOverlay.jsx
-│   │   │   ├── ModelColumn.jsx
-│   │   │   ├── ConceptCluster.jsx
-│   │   │   ├── FeatureBars.jsx
-│   │   │   ├── TextAttribution.jsx
-│   │   │   └── DivergenceSummary.jsx
+│   │   ├── App.jsx          # Dashboard state and API calls
+│   │   ├── constants.js     # API base, fallback model list, colors
+│   │   ├── components/      # Controls, model columns, feature views
 │   │   └── utils/
-│   │       └── download.js
-│   ├── vite.config.js
+│   ├── Dockerfile           # Vite build + nginx static serving
+│   ├── nginx.conf           # /api reverse proxy in K8s-style deployments
 │   └── package.json
+├── sae-demo-deploy.yaml     # GPU pod workspace manifest
 └── README.md
 ```
 
+Files for other pod-side batch jobs have been removed from this main project.
+
 ---
 
-## Quick Start
+## Runtime Model
 
-### Backend
+The application has two runtime modes:
+
+- `real`: PyTorch + SAELens + TransformerLens or HuggingFace are available.
+  The backend loads real models/SAEs and performs activation extraction.
+- `mock`: required ML dependencies are missing or a real analysis fails.
+  The backend returns schema-compatible seeded mock data so the frontend still
+  works.
+
+The backend decides the mode at startup in `backend/main.py` and injects those
+dependency flags into `backend/pipeline.py`.
+
+---
+
+## Request Flow
+
+```text
+React UI
+  |
+  | GET /models
+  | GET /
+  v
+FastAPI backend
+  |
+  | POST /analyze { prompt, selected_models, top_k }
+  v
+For each selected model, sequentially:
+  |
+  v
+Resolve model config from registry.py + SAE cfg cache
+  |
+  +-- Path A: TransformerLens HookedTransformer.run_with_hooks()
+  |
+  +-- Path B: HuggingFace AutoModelForCausalLM + register_forward_hook()
+      Used when TransformerLens cannot load the model
+  |
+  v
+SAE.encode(residual_stream)
+  |
+  v
+Build reports:
+  - report_1_global: global fired feature summary
+  - report_2_per_token: per-token top-50 feature firings
+  |
+  v
+Clear model/SAE objects and CUDA cache before the next model
+```
+
+The backend processes selected models sequentially. This hot-swap strategy is
+intentional because model and SAE weights are large and GPU memory is the main
+constraint.
+
+---
+
+## Backend
+
+Start the backend inside the pod:
+
+```bash
+cd /app/backend
+uvicorn main:app --host 0.0.0.0 --port 8000
+```
+
+For local smoke tests without GPU-scale models:
+
 ```bash
 cd backend
 pip install -r requirements.txt
 python main.py
-# → http://localhost:8000
 ```
 
-### Frontend
+API endpoints:
+
+- `GET /`: health check, dependency flags, and pipeline mode.
+- `GET /models`: model registry exposed to the frontend.
+- `POST /analyze`: run SAE feature extraction for 1-3 selected models.
+
+Environment variables used by the backend:
+
+- `HF_TOKEN`: HuggingFace token for gated models.
+- `X-API-KEY`: optional Neuronpedia API key.
+
+`backend/main.py` currently sets `HTTP_PROXY` and `HTTPS_PROXY` to
+`http://127.0.0.1:7890`. In the pod, make sure that proxy exists, or remove /
+override those variables for direct network access.
+
+---
+
+## Frontend
+
+Local development:
+
 ```bash
 cd frontend
 npm install
 npm run dev
-# → http://localhost:5173
 ```
+
+By default the frontend calls:
+
+```text
+http://localhost:8000
+```
+
+Override this with `VITE_API_URL`:
+
+```bash
+VITE_API_URL=http://<backend-host>:8000 npm run dev
+```
+
+Production-style build:
+
+```bash
+cd frontend
+npm run build
+```
+
+The frontend Dockerfile builds the Vite app and serves it through nginx. In that
+mode `VITE_API_URL` defaults to `/api`, and `frontend/nginx.conf` forwards
+`/api/*` to `http://sae-backend-svc/`. If you use that nginx config in K8s,
+provide a matching backend Service named `sae-backend-svc`.
 
 ---
 
-## Adding a New Model
+## GPU Pod
 
-Edit **`backend/registry.py`** — the only file you need to touch:
+`sae-demo-deploy.yaml` creates a GPU pod in namespace `gufy`:
+
+```bash
+kubectl apply -f sae-demo-deploy.yaml
+kubectl exec -n gufy -it sae-demo -- bash
+```
+
+The current manifest requests:
+
+- node selector: `gpu-model: PRO6000`
+- GPU: `nvidia.com/gpu: "2"`
+- CPU: `64`
+- memory: `256Gi`
+- exposed container ports: `80` and `8000`
+
+Important: the manifest currently starts a long-running shell loop after basic
+environment cleanup:
+
+```bash
+while true; do sleep 30; done
+```
+
+So the pod stays alive as a GPU workspace, but it does not automatically start
+FastAPI or nginx. Start services manually inside the pod, or replace the pod
+command with the desired backend/frontend startup command when you are ready to
+serve it continuously.
+
+---
+
+## Model Registry
+
+Add or edit models in `backend/registry.py`.
+
+Each registry entry should include:
 
 ```python
-MODEL_REGISTRY = {
-    # existing models ...
-
-    "your-model-key": {
-        "display_name": "Your Model Name",
-        "sae_release":  "hf-org/repo-name",   # HuggingFace repo or named SAELens release
-        "sae_id":       "path/to/sae-id",
-    },
+"model-key": {
+    "display_name":  "Human Name",
+    "sae_release":   "sae-release-or-hf-repo",
+    "sae_id":        "path/or/id/inside/release",
+    "hf_model_name": "org/base-model",
+    "hook_point":    "blocks.N.hook_resid_post",
+    "hook_layer":    N,
 }
 ```
 
-All other metadata (`d_model`, `hook_point`, `layer`, `hf_model_name`) is
-**auto-extracted from `sae.cfg`** at runtime — no hardcoding required.
+The backend also reads SAE cfg metadata at runtime and caches resolved configs.
+Registry values such as `hf_model_name`, `hook_point`, and `hook_layer` take
+priority over values discovered from `sae.cfg`.
 
-To find the correct `sae_release` / `sae_id`:
-```python
-from sae_lens import SAE
-sae, _, _ = SAE.from_pretrained("<release>", "<sae_id>")
-print(sae.cfg.hook_name, sae.cfg.d_in, sae.cfg.model_name)
-```
+Current registry families include:
 
-After adding a model to `registry.py`, restart the backend. The new model
-appears automatically in the frontend dropdown.
+- GPT-2 Small layers 4, 8, 11
+- Gemma 3 layers 4, 8, 12
+- Gemma-4 E2B layers 6, 17, 28
+- Llama 3.2 1B layers 4, 8, 12
+- Qwen 3.5 0.8B layers 5, 11, 17
+- DeepSeek R1 Distill Qwen 1.5B layer 16
 
----
-
-## Pipeline Architecture
-
-```
-POST /analyze
-      │
-      ▼
-_resolve_model_config()      ← reads sae.cfg once, caches forever
-      │
-      ├─ Path A: TransformerLens HookedTransformer.run_with_hooks()
-      └─ Path B: HuggingFace AutoModelForCausalLM + register_forward_hook()
-                 (auto-fallback if TL doesn't support the model)
-      │
-      ▼
-SAE.encode(residual_stream)  → sparse feature activations
-      │
-      ▼
-Report 1: global feature summary (max/avg activation, fired token count)
-Report 2: per-token top-50 feature firings
-      │
-      ▼
-del model / del sae + torch.cuda.empty_cache()   ← VRAM hot-swap
-```
+When adding a model, verify that the captured activation dimension matches the
+SAE `d_in`. `pipeline.py` checks this before encoding and falls back to mock
+data on failure.
 
 ---
 
-## Hardware Requirements
+## Concept Labels
 
-| Models | Min VRAM | Recommended |
-|---|---|---|
-| Pythia 70M + 1B models | 8 GB | 16 GB |
-| + Gemma 2B / E2B | 16 GB | 24 GB |
-| + Gemma-4-E4B | 24 GB | A100 40 GB |
-| + Gemma-4-31B | A100 80 GB | H100 80 GB |
+The backend tries to label active SAE features in this order:
 
-**Software**: PyTorch ≥ 2.2, CUDA ≥ 12.1, Python ≥ 3.10
+1. Local JSON under `backend/concept2token/`.
+2. Neuronpedia API, when `np_model_id` and `np_sae_id` are configured.
+3. Fallback label: `Concept {feature_id}`.
+
+Local concept files are named like:
+
+```text
+backend/concept2token/<model-key>_concept_to_token.json
+```
+
+Each feature entry should provide at least:
+
+```json
+{
+  "3045": {
+    "top_bound_token": " token",
+    "enrichment_score": 15.42,
+    "avg_activation": 2.85,
+    "firing_count": 42
+  }
+}
+```
+
+---
+
+## Development Notes
+
+- Keep real model execution on the pod.
+- The frontend can be developed locally against a pod backend by setting
+  `VITE_API_URL`.
+- `backend/pipeline.py` has a real-to-mock fallback. A successful HTTP response
+  can still contain `pipeline_mode: "mock"` for a model if real execution failed.
+- `backend/registry.py` is the main extension point for supported models.
+- `frontend/src/constants.js` contains fallback UI models used only when the
+  backend model list cannot be fetched.
