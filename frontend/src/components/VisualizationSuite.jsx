@@ -656,7 +656,7 @@ function FeatureHeatmapPanel({ features, tokens, cells, modelColor, expanded = f
             Token-feature activation matrix
           </div>
           <div className="mt-0.5 text-[9px] text-white/35">
-            heatmap · drag axes · hover cells · wheel to zoom
+            quantile-scaled heatmap · click cells · scroll to browse
           </div>
         </div>
         <span
@@ -666,7 +666,7 @@ function FeatureHeatmapPanel({ features, tokens, cells, modelColor, expanded = f
           {features.length} × {tokens.length}
         </span>
       </div>
-      <FeatureHeatmapChart
+      <FeatureHeatmapGrid
         features={features}
         tokens={tokens}
         cells={cells}
@@ -677,161 +677,136 @@ function FeatureHeatmapPanel({ features, tokens, cells, modelColor, expanded = f
   );
 }
 
-function FeatureHeatmapChart({ features, tokens, cells, modelColor, expanded = false }) {
-  const option = useMemo(() => {
-    const compact = !expanded;
-    const featureIndex = new Map(features.map((feature, index) => [feature.feature_id, index]));
+function FeatureHeatmapGrid({ features, tokens, cells, modelColor, expanded = false }) {
+  const [selectedCell, setSelectedCell] = useState(null);
+  const { cellMap, rowStats, sortedValues } = useMemo(() => {
     const cellMap = new Map(cells.map((cell) => [`${cell.feature_id}:${cell.token_index}`, cell.activation ?? 0]));
-    const heatmapCells = [];
+    const rowStats = new Map();
+    const sortedValues = [];
 
     for (const feature of features) {
-      const rowIndex = featureIndex.get(feature.feature_id);
-      for (const token of tokens) {
-        const activation = cellMap.get(`${feature.feature_id}:${token.token_index}`) ?? 0;
-        heatmapCells.push([
-          token.token_index,
-          rowIndex,
-          activation,
-          feature.concept_label,
-          token.token_string,
-          feature.feature_id,
-        ]);
-      }
+      const values = tokens
+        .map((token) => cellMap.get(`${feature.feature_id}:${token.token_index}`) ?? 0)
+        .filter((value) => value > 0)
+        .sort((a, b) => a - b);
+      sortedValues.push(...values);
+      const p95 = values[Math.max(Math.ceil(values.length * 0.95) - 1, 0)] ?? 1;
+      rowStats.set(feature.feature_id, {
+        scaleMax: Math.max(p95, 0.001),
+      });
     }
+    sortedValues.sort((a, b) => a - b);
+    return { cellMap, rowStats, sortedValues };
+  }, [cells, features, tokens]);
 
-    const maxAct = Math.max(...heatmapCells.map((cell) => cell[2] ?? 0), 1);
-    const tokenLabels = tokens.map((token) => token.token_string);
-    const featureLabels = features.map((feature) => feature.concept_label);
-    const xStep = Math.max(1, Math.ceil(tokenLabels.length / (compact ? 7 : 16)));
+  const selectedFeature = selectedCell ? features[selectedCell.row] : null;
+  const selectedToken = selectedCell ? tokens[selectedCell.col] : null;
+  const selectedActivation = selectedFeature && selectedToken
+    ? cellMap.get(`${selectedFeature.feature_id}:${selectedToken.token_index}`) ?? 0
+    : 0;
 
-    return {
-      animation: false,
-      grid: {
-        left: compact ? 120 : 170,
-        right: compact ? 22 : 58,
-        top: compact ? 12 : 18,
-        bottom: compact ? 58 : 82,
-      },
-      tooltip: {
-        trigger: 'item',
-        confine: true,
-        appendToBody: true,
-        backgroundColor: 'rgba(255,255,255,0.96)',
-        borderColor: 'rgba(22,97,171,0.18)',
-        textStyle: { color: '#172033', fontSize: 11, fontFamily: 'Outfit, sans-serif' },
-        formatter: (params) => {
-          const value = params.value ?? [];
-          return `<div style="font-weight:700;margin-bottom:4px;">${value[3] ?? ''}</div>
-            <div>feature #${value[5] ?? ''}</div>
-            <div>token: <b>${value[4] ?? ''}</b></div>
-            <div>activation: <b>${Number(value[2] ?? 0).toFixed(4)}</b></div>`;
-        },
-      },
-      visualMap: {
-        min: 0,
-        max: maxAct,
-        show: expanded,
-        calculable: true,
-        orient: 'horizontal',
-        left: 'center',
-        bottom: 18,
-        inRange: { color: ['rgba(255,255,255,0.95)', hexToRgba(modelColor.accent, 0.82)] },
-        textStyle: { color: 'rgba(11,18,32,0.45)', fontSize: 9 },
-      },
-      xAxis: {
-        type: 'category',
-        data: tokenLabels,
-        splitArea: { show: false },
-        axisTick: { show: false },
-        axisLine: { lineStyle: { color: 'rgba(22,97,171,0.14)' } },
-        axisLabel: {
-          color: 'rgba(11,18,32,0.50)',
-          fontSize: compact ? 9 : 10,
-          interval: (index) => index % xStep === 0 || index === tokenLabels.length - 1,
-          hideOverlap: true,
-          margin: 12,
-          formatter: (value) => truncateLabel(value, compact ? 8 : 14),
-        },
-      },
-      yAxis: {
-        type: 'category',
-        data: featureLabels,
-        inverse: true,
-        axisTick: { show: false },
-        axisLine: { show: false },
-        axisLabel: {
-          color: 'rgba(11,18,32,0.58)',
-          fontSize: compact ? 9 : 10,
-          width: compact ? 104 : 150,
-          overflow: 'truncate',
-          formatter: (value) => truncateLabel(value, compact ? 18 : 26),
-        },
-        splitLine: { show: false },
-      },
-      dataZoom: [
-        {
-          type: 'inside',
-          xAxisIndex: 0,
-          filterMode: 'none',
-          zoomOnMouseWheel: true,
-          moveOnMouseWheel: true,
-          throttle: 80,
-        },
-        {
-          type: 'slider',
-          xAxisIndex: 0,
-          height: compact ? 16 : 22,
-          bottom: compact ? 12 : expanded ? 48 : 20,
-          borderColor: 'rgba(22,97,171,0.10)',
-          fillerColor: hexToRgba(modelColor.accent, 0.12),
-          handleStyle: { color: modelColor.accent, borderColor: modelColor.accent },
-          textStyle: { color: 'rgba(11,18,32,0.40)', fontSize: 9 },
-          showDetail: !compact,
-          showDataShadow: false,
-        },
-        {
-          type: 'inside',
-          yAxisIndex: 0,
-          filterMode: 'none',
-          zoomOnMouseWheel: false,
-          moveOnMouseWheel: true,
-        },
-        {
-          type: 'slider',
-          yAxisIndex: 0,
-          width: expanded ? 18 : 12,
-          right: expanded ? 12 : 5,
-          borderColor: 'rgba(22,97,171,0.10)',
-          fillerColor: hexToRgba(modelColor.accent, 0.10),
-          handleStyle: { color: modelColor.accent, borderColor: modelColor.accent },
-          showDetail: false,
-          showDataShadow: false,
-        },
-      ],
-      series: [
-        {
-          name: 'Activation',
-          type: 'heatmap',
-          data: heatmapCells,
-          progressive: 600,
-          emphasis: {
-            itemStyle: {
-              borderColor: modelColor.accent,
-              borderWidth: 1,
-            },
-          },
-        },
-      ],
-    };
-  }, [cells, expanded, features, modelColor, tokens]);
+  const getCellRatio = (feature, activation) => {
+    if (activation <= 0) return 0;
+    const stats = rowStats.get(feature.feature_id);
+    if (!stats) return 0;
+    const rowRatio = Math.min(activation / stats.scaleMax, 1);
+    let low = 0;
+    let high = sortedValues.length;
+    while (low < high) {
+      const mid = Math.floor((low + high) / 2);
+      if (sortedValues[mid] <= activation) low = mid + 1;
+      else high = mid;
+    }
+    const quantileRatio = sortedValues.length ? low / sortedValues.length : rowRatio;
+    const blended = rowRatio * 0.48 + quantileRatio * 0.52;
+    return Math.max(0.10, Math.min(Math.pow(blended, 0.78), 1));
+  };
 
   return (
-    <EChartCanvas
-      option={option}
-      className="min-h-0 flex-1 rounded-lg border bg-white/80"
-      style={{ borderColor: 'rgba(22,97,171,0.10)' }}
-      loadingLabel="Loading heatmap"
-    />
+    <div className="min-h-0 flex-1 rounded-lg border bg-white/80 p-3" style={{ borderColor: 'rgba(22,97,171,0.10)' }}>
+      <div
+        className="grid h-full min-h-0 gap-1 overflow-auto pr-1"
+        style={{
+          gridTemplateColumns: `minmax(${expanded ? 164 : 118}px, 1.15fr) repeat(${tokens.length}, minmax(${expanded ? 74 : 48}px, 0.76fr))`,
+          gridAutoRows: expanded ? 'minmax(32px, auto)' : 'minmax(26px, auto)',
+        }}
+      >
+        <div className="sticky left-0 top-0 z-20 rounded-md bg-white/95 px-2 py-2 text-[9px] font-bold uppercase tracking-wide text-white/35">
+          feature
+        </div>
+        {tokens.map((token) => (
+          <div
+            key={token.token_index}
+            className="sticky top-0 z-10 truncate rounded-md bg-white/90 px-1.5 py-2 text-center text-[8px] font-bold text-white/40"
+            title={token.token_string}
+          >
+            {truncateLabel(token.token_string, expanded ? 10 : 6)}
+          </div>
+        ))}
+
+        {features.map((feature, row) => (
+          <div key={feature.feature_id} className="contents">
+            <div
+              className="sticky left-0 z-10 flex items-center rounded-md px-2 py-1.5 text-[9px] font-semibold"
+              style={{
+                background: row % 2 ? 'rgba(239,245,255,0.94)' : 'rgba(255,255,255,0.96)',
+                color: 'rgba(11,18,32,0.68)',
+              }}
+              title={`#${feature.feature_id} ${feature.concept_label}`}
+            >
+              <span className="truncate">{truncateLabel(feature.concept_label, expanded ? 28 : 18)}</span>
+            </div>
+            {tokens.map((token, col) => {
+              const activation = cellMap.get(`${feature.feature_id}:${token.token_index}`) ?? 0;
+              const ratio = getCellRatio(feature, activation);
+              const selected = selectedCell?.row === row && selectedCell?.col === col;
+              return (
+                <button
+                  key={`${feature.feature_id}:${token.token_index}`}
+                  type="button"
+                  onClick={() => setSelectedCell({ row, col })}
+                  className="rounded-md border px-1.5 py-1 text-left transition-transform hover:scale-[1.03]"
+                  style={{
+                    background: activation > 0
+                      ? `linear-gradient(135deg, ${hexToRgba(modelColor.accent, 0.06 + ratio * 0.62)}, ${hexToRgba(modelColor.accent, 0.03 + ratio * 0.22)} 58%, rgba(255,255,255,0.90))`
+                      : 'rgba(226,232,240,0.26)',
+                    borderColor: selected
+                      ? modelColor.accent
+                      : activation > 0
+                        ? hexToRgba(modelColor.accent, 0.12 + ratio * 0.34)
+                        : 'rgba(148,163,184,0.14)',
+                    boxShadow: selected ? `0 0 0 2px ${hexToRgba(modelColor.accent, 0.14)}` : 'none',
+                  }}
+                  title={`${feature.concept_label}\ntoken: ${token.token_string}\nactivation: ${activation.toFixed(4)}`}
+                >
+                  <div
+                    className="mono truncate text-[8px] font-bold"
+                    style={{ color: activation > 0 ? modelColor.text : 'rgba(11,18,32,0.30)' }}
+                  >
+                    {activation > 0 ? activation.toFixed(2) : '0.00'}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+
+      {selectedCell && selectedFeature && selectedToken && (
+        <div
+          className="mt-2 rounded-lg border px-3 py-2 text-[10px]"
+          style={{ background: 'rgba(255,255,255,0.78)', borderColor: 'rgba(22,97,171,0.12)' }}
+        >
+          <span className="font-bold text-slate-700">{truncateLabel(selectedFeature.concept_label, 34)}</span>
+          <span className="mx-2 text-white/25">·</span>
+          <span className="mono text-white/40">{selectedToken.token_string}</span>
+          <span className="mx-2 text-white/25">·</span>
+          <span className="mono" style={{ color: modelColor.text }}>
+            feature #{selectedFeature.feature_id} · activation {selectedActivation.toFixed(4)}
+          </span>
+        </div>
+      )}
+    </div>
   );
 }
 

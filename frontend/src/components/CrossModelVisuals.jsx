@@ -452,7 +452,7 @@ function MatrixGrid({ concepts, modelKeys, expanded = false }) {
                         : 'rgba(148,163,184,0.16)',
                     boxShadow: selected ? `0 0 0 2px ${hexToRgba(color.accent, 0.14)}` : 'none',
                   }}
-                  title={`${concept.label}\n${key}: ${record ? `#${record.feature_id} max ${Number(activation).toFixed(4)}` : 'absent'}`}
+                  title={`${concept.label}\n${key}: ${record ? `#${record.feature_id} max ${Number(activation).toFixed(4)}` : '0.00'}`}
                 >
                   {record ? (
                     <>
@@ -464,7 +464,7 @@ function MatrixGrid({ concepts, modelKeys, expanded = false }) {
                       </div>
                     </>
                   ) : (
-                    <div className="text-center text-[9px] font-medium text-white/25">absent</div>
+                    <div className="mono text-center text-[9px] font-bold text-white/35">0.00</div>
                   )}
                 </button>
               );
@@ -485,7 +485,7 @@ function MatrixGrid({ concepts, modelKeys, expanded = false }) {
           <span className="mono" style={{ color: getModelColor(selectedCell.col).text }}>
             {selectedRecord
               ? `feature #${selectedRecord.feature_id} · max ${Number(selectedRecord.max_activation ?? 0).toFixed(4)}`
-              : 'absent'}
+              : '0.00'}
           </span>
         </div>
       )}
@@ -850,7 +850,7 @@ function ConceptDetail({ concept, modelKeys, results, color }) {
                   {truncateLabel(modelName, 28)}
                 </span>
                 <span className="mono text-[8px] text-white/35">
-                  {record ? `#${record.feature_id}` : 'absent'}
+                  {record ? `#${record.feature_id}` : '0.00'}
                 </span>
               </div>
               {record && (
