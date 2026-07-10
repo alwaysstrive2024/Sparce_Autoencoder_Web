@@ -7,6 +7,7 @@ import ModelColumn from './components/ModelColumn';
 import CrossModelVisuals from './components/CrossModelVisuals';
 import LoadingOverlay from './components/LoadingOverlay';
 import fangcunLogo from '../fangcun_icon.svg';
+import fangcunLogoPng from '../fangcun_logo.png';
 
 export default function App() {
   // ── State ────────────────────────────────────────────────────────────────
@@ -94,14 +95,19 @@ export default function App() {
         <div className="max-w-screen-2xl mx-auto px-6 py-3 flex items-center gap-3">
           {/* Logo */}
           <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
+            className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
             style={{
               background: 'rgba(255,255,255,0.88)',
               border: '1px solid rgba(130,49,142,0.18)',
               boxShadow: '0 8px 22px rgba(130,49,142,0.18)',
             }}
           >
-            <img src={fangcunLogo} alt="Fangcun AI" className="h-full w-full object-contain p-1" />
+            <img
+              src={fangcunLogo}
+              alt="Fangcun AI"
+              className="h-full w-full object-cover"
+              style={{ transform: 'scale(2.85)' }}
+            />
           </div>
 
           <div className="leading-tight">
@@ -266,7 +272,7 @@ function EmptyState({ hasModels }) {
           border: '1px solid rgba(130,49,142,0.30)',
         }}
       >
-        <img src={fangcunLogo} alt="Fangcun AI" className="h-11 w-11 object-contain" />
+        <img src={fangcunLogoPng} alt="Fangcun AI" className="h-11 w-11 object-contain" />
       </div>
 
       <h3 className="text-base font-bold text-white/50 mb-1">
