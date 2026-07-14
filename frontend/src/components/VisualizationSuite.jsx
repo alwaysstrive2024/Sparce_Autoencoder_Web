@@ -13,6 +13,7 @@ import {
 import ConceptCluster from './ConceptCluster';
 import EChartCanvas from './EChartCanvas';
 import FloatingTooltip from './FloatingTooltip';
+import { useI18n } from '../i18n';
 
 function hexToRgba(hex, alpha) {
   const safe = typeof hex === 'string' && hex.startsWith('#') ? hex : '#1661ab';
@@ -83,6 +84,7 @@ function deriveVisualizationData(modelData) {
 }
 
 export default function VisualizationSuite({ modelData, modelColor }) {
+  const { t } = useI18n();
   const [activeView, setActiveView] = useState('graph');
   const visual = useMemo(
     () => modelData?.visualization_data ?? deriveVisualizationData(modelData),
@@ -90,12 +92,12 @@ export default function VisualizationSuite({ modelData, modelColor }) {
   );
 
   const tabs = [
-    { id: 'landscape', label: 'Landscape', icon: MapIcon },
-    { id: 'heatmap', label: 'Heatmap', icon: Grid3X3 },
-    { id: 'stream', label: 'Stream', icon: Activity },
-    { id: 'cluster', label: 'Cluster', icon: CircleDot },
-    { id: 'graph', label: 'Graph', icon: Network },
-    { id: 'treemap', label: 'Treemap', icon: Boxes },
+    { id: 'landscape', label: t('visualTabs.landscape'), icon: MapIcon },
+    { id: 'heatmap', label: t('visualTabs.heatmap'), icon: Grid3X3 },
+    { id: 'stream', label: t('visualTabs.stream'), icon: Activity },
+    { id: 'cluster', label: t('visualTabs.cluster'), icon: CircleDot },
+    { id: 'graph', label: t('visualTabs.graph'), icon: Network },
+    { id: 'treemap', label: t('visualTabs.treemap'), icon: Boxes },
   ];
 
   return (
@@ -160,6 +162,7 @@ export default function VisualizationSuite({ modelData, modelColor }) {
 }
 
 function ChartFrame({ children, title, modelColor, modalContent }) {
+  const { t } = useI18n();
   const [soloOpen, setSoloOpen] = useState(false);
   const webCanvasStyle = { width: 'min(1260px, 100%)' };
 
@@ -184,7 +187,7 @@ function ChartFrame({ children, title, modelColor, modalContent }) {
             color: modelColor.text,
             boxShadow: '0 8px 20px rgba(22,97,171,0.12)',
           }}
-          title="Open image view"
+          title={t('openImageView')}
         >
           <Maximize2 size={14} />
         </button>
@@ -220,7 +223,7 @@ function ChartFrame({ children, title, modelColor, modalContent }) {
               <span className="text-sm font-bold" style={{ color: modelColor.text }}>
                 {title}
               </span>
-              <span className="mono text-[10px] text-white/35">scroll to browse</span>
+              <span className="mono text-[10px] text-white/35">{t('scrollToBrowse')}</span>
               <button
                 type="button"
                 onClick={() => setSoloOpen(false)}
@@ -230,7 +233,7 @@ function ChartFrame({ children, title, modelColor, modalContent }) {
                   borderColor: 'rgba(22,97,171,0.22)',
                   color: modelColor.text,
                 }}
-                title="Close image view"
+                title={t('closeImageView')}
               >
                 <X size={15} />
               </button>
@@ -249,6 +252,7 @@ function ChartFrame({ children, title, modelColor, modalContent }) {
 }
 
 function ClusterViewer({ modelData, modelColor }) {
+  const { t } = useI18n();
   const [soloOpen, setSoloOpen] = useState(false);
 
   return (
@@ -262,7 +266,7 @@ function ClusterViewer({ modelData, modelColor }) {
           borderColor: 'rgba(22,97,171,0.22)',
           color: modelColor.text,
         }}
-        title="Open image view"
+        title={t('openImageView')}
       >
         <Maximize2 size={13} />
       </button>
@@ -297,9 +301,9 @@ function ClusterViewer({ modelData, modelColor }) {
               style={{ borderColor: 'rgba(22,97,171,0.16)', background: 'rgba(239,245,255,0.72)' }}
             >
               <span className="text-sm font-bold" style={{ color: modelColor.text }}>
-                Concept Cluster
+                {t('visualTabs.cluster')}
               </span>
-              <span className="mono text-[10px] text-white/35">scroll to browse</span>
+              <span className="mono text-[10px] text-white/35">{t('scrollToBrowse')}</span>
               <button
                 type="button"
                 onClick={() => setSoloOpen(false)}
@@ -309,7 +313,7 @@ function ClusterViewer({ modelData, modelColor }) {
                   borderColor: 'rgba(22,97,171,0.22)',
                   color: modelColor.text,
                 }}
-                title="Close image view"
+                title={t('closeImageView')}
               >
                 <X size={15} />
               </button>
@@ -328,6 +332,7 @@ function ClusterViewer({ modelData, modelColor }) {
 }
 
 function ClusterConceptBrowser({ modelData, modelColor }) {
+  const { t } = useI18n();
   const concepts = useMemo(() => {
     const raw = modelData?.report_1_global?.fired_features_summary ?? [];
     const map = new Map();
@@ -347,7 +352,7 @@ function ClusterConceptBrowser({ modelData, modelColor }) {
   const maxCoverage = Math.max(...concepts.map((c) => c.fired_token_count ?? 0), 1);
 
   if (!concepts.length) {
-    return <EmptyVisual message="No concept data" />;
+    return <EmptyVisual message={t('noConceptData')} />;
   }
 
   return (
@@ -355,17 +360,17 @@ function ClusterConceptBrowser({ modelData, modelColor }) {
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <div className="text-[10px] font-bold" style={{ color: modelColor.text }}>
-            Concept cluster browser
+            {t('conceptClusterBrowser')}
           </div>
           <div className="mt-0.5 text-[9px] text-white/35">
-            {concepts.length} strongest deduplicated concepts
+            {t('strongestConcepts', { count: concepts.length })}
           </div>
         </div>
         <span
           className="rounded-md px-2 py-1 text-[9px] font-semibold"
           style={{ background: hexToRgba(modelColor.accent, 0.10), color: modelColor.text }}
         >
-          activation ranked
+          {t('activationRanked')}
         </span>
       </div>
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -408,7 +413,7 @@ function ClusterConceptBrowser({ modelData, modelColor }) {
                 />
               </div>
               <div className="mt-1 text-[8px] text-white/35">
-                {concept.fired_token_count ?? 0} fired token{(concept.fired_token_count ?? 0) === 1 ? '' : 's'}
+                {t('firedTokens', { count: concept.fired_token_count ?? 0 })}
               </div>
             </div>
           );
@@ -419,16 +424,17 @@ function ClusterConceptBrowser({ modelData, modelColor }) {
 }
 
 function ConceptLandscape({ visual, modelColor }) {
+  const { t } = useI18n();
   const data = (visual?.landscape ?? []).slice(0, 60);
   const tokens = visual?.tokens ?? [];
 
   if (!data.length) {
-    return <EmptyVisual message="No concept data" />;
+    return <EmptyVisual message={t('noConceptData')} />;
   }
 
   return (
     <ChartFrame
-      title="Concept activation landscape"
+      title={t('conceptActivationLandscape')}
       modelColor={modelColor}
       modalContent={
         <ConceptLandscapePanel
@@ -445,22 +451,23 @@ function ConceptLandscape({ visual, modelColor }) {
 }
 
 function ConceptLandscapePanel({ data, tokens, modelColor, expanded = false }) {
+  const { t } = useI18n();
   return (
     <div className={`flex h-full w-full flex-col rounded-lg bg-white/75 p-4 ${expanded ? 'min-h-[560px]' : 'min-h-[300px]'}`}>
       <div className="mb-2 flex items-start justify-between gap-3">
         <div>
           <div className="text-[10px] font-bold" style={{ color: modelColor.text }}>
-            Concept activation landscape
+            {t('conceptActivationLandscape')}
           </div>
           <div className="mt-0.5 text-[9px] text-white/35">
-            scatter · dot size = coverage · hover concepts · scroll to zoom
+            {t('landscapeHelp')}
           </div>
         </div>
         <span
           className="rounded-md px-2 py-1 text-[9px] font-semibold"
           style={{ background: hexToRgba(modelColor.accent, 0.10), color: modelColor.text }}
         >
-          {data.length} concepts
+          {data.length} {t('concepts')}
         </span>
       </div>
       <LandscapeScatterChart data={data} tokens={tokens} modelColor={modelColor} expanded={expanded} />
@@ -469,6 +476,7 @@ function ConceptLandscapePanel({ data, tokens, modelColor, expanded = false }) {
 }
 
 function LandscapeScatterChart({ data, tokens, modelColor, expanded = false }) {
+  const { t } = useI18n();
   const option = useMemo(() => {
     const compact = !expanded;
     const tokenLabels = tokens.length
@@ -518,10 +526,10 @@ function LandscapeScatterChart({ data, tokens, modelColor, expanded = false }) {
         formatter: (params) => {
           const value = params.value ?? [];
           return `<div style="font-weight:700;margin-bottom:4px;">${value[4] ?? params.name}</div>
-            <div>feature #${value[3] ?? ''}</div>
-            <div>peak token: <b>${value[5] ?? ''}</b></div>
-            <div>max activation: <b>${Number(value[1] ?? 0).toFixed(4)}</b></div>
-            <div>coverage: <b>${value[2] ?? 0}</b> tokens</div>`;
+            <div>${t('feature')} #${value[3] ?? ''}</div>
+            <div>${t('peakToken')}: <b>${value[5] ?? ''}</b></div>
+            <div>${t('maxActivation')}: <b>${Number(value[1] ?? 0).toFixed(4)}</b></div>
+            <div>${t('coverage')}: <b>${value[2] ?? 0}</b> ${t('tokens')}</div>`;
         },
       },
       xAxis: {
@@ -602,7 +610,7 @@ function LandscapeScatterChart({ data, tokens, modelColor, expanded = false }) {
         },
       ],
     };
-  }, [data, expanded, modelColor, tokens]);
+  }, [data, expanded, modelColor, tokens, t]);
 
   return (
     <EChartCanvas
@@ -615,18 +623,19 @@ function LandscapeScatterChart({ data, tokens, modelColor, expanded = false }) {
 }
 
 function FeatureHeatmap({ visual, modelColor }) {
+  const { t } = useI18n();
   const features = (visual?.heatmap?.features ?? []).slice(0, 32);
   const tokens = visual?.tokens ?? [];
   const featureIds = new Set(features.map((f) => f.feature_id));
   const cells = (visual?.heatmap?.cells ?? []).filter((c) => featureIds.has(c.feature_id));
 
   if (!features.length || !tokens.length) {
-    return <EmptyVisual message="No heatmap data" />;
+    return <EmptyVisual message={t('noHeatmapData')} />;
   }
 
   return (
     <ChartFrame
-      title="Token-feature activation matrix"
+      title={t('tokenFeatureActivationMatrix')}
       modelColor={modelColor}
       modalContent={
         <FeatureHeatmapPanel
@@ -649,15 +658,16 @@ function FeatureHeatmap({ visual, modelColor }) {
 }
 
 function FeatureHeatmapPanel({ features, tokens, cells, modelColor, expanded = false }) {
+  const { t } = useI18n();
   return (
     <div className={`flex h-full w-full flex-col rounded-lg bg-white/75 p-4 ${expanded ? 'min-h-[600px]' : 'min-h-[300px]'}`}>
       <div className="mb-2 flex items-start justify-between gap-3">
         <div>
           <div className="text-[10px] font-bold" style={{ color: modelColor.text }}>
-            Token-feature activation matrix
+            {t('tokenFeatureActivationMatrix')}
           </div>
           <div className="mt-0.5 text-[9px] text-white/35">
-            quantile-scaled heatmap · click cells · scroll to browse
+            {t('heatmapHelp')}
           </div>
         </div>
         <span
@@ -679,6 +689,7 @@ function FeatureHeatmapPanel({ features, tokens, cells, modelColor, expanded = f
 }
 
 function FeatureHeatmapGrid({ features, tokens, cells, modelColor, expanded = false }) {
+  const { t } = useI18n();
   const [hoveredCell, setHoveredCell] = useState(null);
   const { cellMap, rowStats, sortedValues } = useMemo(() => {
     const cellMap = new Map(cells.map((cell) => [`${cell.feature_id}:${cell.token_index}`, cell.activation ?? 0]));
@@ -733,7 +744,7 @@ function FeatureHeatmapGrid({ features, tokens, cells, modelColor, expanded = fa
         }}
       >
         <div className="sticky left-0 top-0 z-20 rounded-md bg-white/95 px-2 py-2 text-[9px] font-bold uppercase tracking-wide text-white/35">
-          feature
+          {t('feature')}
         </div>
         {tokens.map((token) => (
           <div
@@ -806,16 +817,16 @@ function FeatureHeatmapGrid({ features, tokens, cells, modelColor, expanded = fa
               {hoveredFeature.concept_label}
             </div>
             <div className="mono truncate text-[9px] text-slate-500">
-              token: {hoveredToken.token_string}
+              {t('token')}: {hoveredToken.token_string}
             </div>
             <div className="grid grid-cols-2 gap-1 text-center">
               <div className="rounded-md border px-2 py-1" style={{ background: hexToRgba(modelColor.accent, 0.08), borderColor: hexToRgba(modelColor.accent, 0.12) }}>
                 <div className="mono text-[10px] font-bold" style={{ color: modelColor.text }}>#{hoveredFeature.feature_id}</div>
-                <div className="text-[7px] uppercase tracking-wide text-slate-400">feature</div>
+                <div className="text-[7px] uppercase tracking-wide text-slate-400">{t('feature')}</div>
               </div>
               <div className="rounded-md border px-2 py-1" style={{ background: hexToRgba(modelColor.accent, 0.08), borderColor: hexToRgba(modelColor.accent, 0.12) }}>
                 <div className="mono text-[10px] font-bold" style={{ color: modelColor.text }}>{hoveredActivation.toFixed(4)}</div>
-                <div className="text-[7px] uppercase tracking-wide text-slate-400">activation</div>
+                <div className="text-[7px] uppercase tracking-wide text-slate-400">{t('activation')}</div>
               </div>
             </div>
           </div>
@@ -826,6 +837,7 @@ function FeatureHeatmapGrid({ features, tokens, cells, modelColor, expanded = fa
 }
 
 function ActivationStream({ visual, modelColor }) {
+  const { t } = useI18n();
   const fallbackSeries = useMemo(() => {
     if (visual?.stream?.series?.length) return visual.stream.series.slice(0, 8);
     const features = (visual?.features ?? []).slice(0, 8);
@@ -856,12 +868,12 @@ function ActivationStream({ visual, modelColor }) {
   ];
 
   if (!series.length || !tokens.length) {
-    return <EmptyVisual message="No stream data" />;
+    return <EmptyVisual message={t('noStreamData')} />;
   }
 
   return (
     <ChartFrame
-      title="Activation stream"
+      title={t('activationStream')}
       modelColor={modelColor}
       modalContent={
         <ActivationStreamPanel
@@ -884,22 +896,23 @@ function ActivationStream({ visual, modelColor }) {
 }
 
 function ActivationStreamPanel({ series, tokens, palette, modelColor, expanded = false }) {
+  const { t } = useI18n();
   return (
     <div className={`flex h-full w-full flex-col rounded-lg bg-white/75 p-4 ${expanded ? 'min-h-[560px]' : 'min-h-[300px]'}`}>
       <div className="mb-2 flex items-start justify-between gap-3">
         <div>
           <div className="text-[10px] font-bold" style={{ color: modelColor.text }}>
-            Activation stream
+            {t('activationStream')}
           </div>
           <div className="mt-0.5 text-[9px] text-white/35">
-            line chart · hover token positions · drag/scroll to zoom
+            {t('streamHelp')}
           </div>
         </div>
         <span
           className="rounded-md px-2 py-1 text-[9px] font-semibold"
           style={{ background: hexToRgba(modelColor.accent, 0.10), color: modelColor.text }}
         >
-          {series.length} concepts
+          {series.length} {t('concepts')}
         </span>
       </div>
       <ActivationLineChart
@@ -914,6 +927,7 @@ function ActivationStreamPanel({ series, tokens, palette, modelColor, expanded =
 }
 
 function ActivationLineChart({ series, tokens, palette, modelColor, expanded = false }) {
+  const { t } = useI18n();
   const chartRef = useRef(null);
   const chartInstanceRef = useRef(null);
   const [chartReady, setChartReady] = useState(0);
@@ -1009,7 +1023,7 @@ function ActivationLineChart({ series, tokens, palette, modelColor, expanded = f
               </div>`;
             })
             .join('');
-          return `<div style="font-weight:700;margin-bottom:4px;">Token: ${params[0]?.axisValue ?? ''}</div>${rows || '<span style="color:rgba(11,18,32,0.48)">No active feature</span>'}`;
+          return `<div style="font-weight:700;margin-bottom:4px;">${t('token')}: ${params[0]?.axisValue ?? ''}</div>${rows || `<span style="color:rgba(11,18,32,0.48)">${t('noActiveFeature')}</span>`}`;
         },
       },
       legend: {
@@ -1103,7 +1117,7 @@ function ActivationLineChart({ series, tokens, palette, modelColor, expanded = f
         },
       })),
     }, true);
-  }, [chartReady, containerSize, expanded, modelColor, palette, series, tokens]);
+  }, [chartReady, containerSize, expanded, modelColor, palette, series, tokens, t]);
 
   return (
     <div
@@ -1115,6 +1129,7 @@ function ActivationLineChart({ series, tokens, palette, modelColor, expanded = f
 }
 
 function CoactivationGraph({ visual, modelColor }) {
+  const { t } = useI18n();
   const nodes = (visual?.coactivation_graph?.nodes ?? []).slice(0, 36);
   const nodeIds = new Set(nodes.map((node) => node.id));
   const links = (visual?.coactivation_graph?.links ?? []).filter(
@@ -1122,12 +1137,12 @@ function CoactivationGraph({ visual, modelColor }) {
   );
 
   if (!nodes.length) {
-    return <EmptyVisual message="No coactivation data" />;
+    return <EmptyVisual message={t('noCoactivationData')} />;
   }
 
   return (
     <ChartFrame
-      title="Co-activation graph"
+      title={t('coactivationGraph')}
       modelColor={modelColor}
       modalContent={
         <CoactivationGraphPanel
@@ -1148,22 +1163,23 @@ function CoactivationGraph({ visual, modelColor }) {
 }
 
 function CoactivationGraphPanel({ nodes, links, modelColor, expanded = false }) {
+  const { t } = useI18n();
   return (
     <div className={`flex h-full w-full flex-col rounded-lg bg-white/75 p-4 ${expanded ? 'min-h-[620px]' : 'min-h-[300px]'}`}>
       <div className="mb-2 flex items-start justify-between gap-3">
         <div>
           <div className="text-[10px] font-bold" style={{ color: modelColor.text }}>
-            Co-activation graph
+            {t('coactivationGraph')}
           </div>
           <div className="mt-0.5 text-[9px] text-white/35">
-            force graph · drag nodes · scroll to zoom · hover relationships
+            {t('graphHelp')}
           </div>
         </div>
         <span
           className="rounded-md px-2 py-1 text-[9px] font-semibold"
           style={{ background: hexToRgba(modelColor.accent, 0.10), color: modelColor.text }}
         >
-          {nodes.length} nodes · {links.length} links
+          {t('nodesLinks', { nodes: nodes.length, links: links.length })}
         </span>
       </div>
       <CoactivationGraphChart nodes={nodes} links={links} modelColor={modelColor} expanded={expanded} />
@@ -1172,6 +1188,7 @@ function CoactivationGraphPanel({ nodes, links, modelColor, expanded = false }) 
 }
 
 function CoactivationGraphChart({ nodes, links, modelColor, expanded = false }) {
+  const { t } = useI18n();
   const option = useMemo(() => {
     const compact = !expanded;
     const nodeIds = new Set(nodes.map((node) => node.id));
@@ -1230,11 +1247,11 @@ function CoactivationGraphChart({ nodes, links, modelColor, expanded = false }) 
           if (params.dataType === 'edge') {
             return `<div style="font-weight:700;margin-bottom:4px;">Co-activation</div>
               <div>${params.data.source} → ${params.data.target}</div>
-              <div>strength: <b>${Number(params.data.value ?? 0).toFixed(3)}</b></div>`;
+              <div>${t('strength')}: <b>${Number(params.data.value ?? 0).toFixed(3)}</b></div>`;
           }
           return `<div style="font-weight:700;margin-bottom:4px;">${params.data.rawLabel ?? params.name}</div>
-            <div>feature #${params.data.feature_id ?? ''}</div>
-            <div>max activation: <b>${Number(params.data.value ?? 0).toFixed(4)}</b></div>`;
+            <div>${t('feature')} #${params.data.feature_id ?? ''}</div>
+            <div>${t('maxActivation')}: <b>${Number(params.data.value ?? 0).toFixed(4)}</b></div>`;
         },
       },
       series: [
@@ -1269,7 +1286,7 @@ function CoactivationGraphChart({ nodes, links, modelColor, expanded = false }) 
         },
       ],
     };
-  }, [expanded, links, modelColor, nodes]);
+  }, [expanded, links, modelColor, nodes, t]);
 
   return (
     <EChartCanvas
@@ -1282,15 +1299,16 @@ function CoactivationGraphChart({ nodes, links, modelColor, expanded = false }) 
 }
 
 function FeatureTreemap({ visual, modelColor }) {
+  const { t } = useI18n();
   const items = (visual?.treemap ?? []).slice(0, 36);
 
   if (!items.length) {
-    return <EmptyVisual message="No treemap data" />;
+    return <EmptyVisual message={t('noTreemapData')} />;
   }
 
   return (
     <ChartFrame
-      title="Feature coverage treemap"
+      title={t('featureCoverageTreemap')}
       modelColor={modelColor}
       modalContent={<FeatureTreemapPanel items={items} modelColor={modelColor} expanded />}
     >
@@ -1300,22 +1318,23 @@ function FeatureTreemap({ visual, modelColor }) {
 }
 
 function FeatureTreemapPanel({ items, modelColor, expanded = false }) {
+  const { t } = useI18n();
   return (
     <div className={`flex h-full w-full flex-col rounded-lg bg-white/75 p-4 ${expanded ? 'min-h-[600px]' : 'min-h-[300px]'}`}>
       <div className="mb-2 flex items-start justify-between gap-3">
         <div>
           <div className="text-[10px] font-bold" style={{ color: modelColor.text }}>
-            Feature coverage treemap
+            {t('featureCoverageTreemap')}
           </div>
           <div className="mt-0.5 text-[9px] text-white/35">
-            treemap · click to focus · hover for coverage and activation
+            {t('treemapHelp')}
           </div>
         </div>
         <span
           className="rounded-md px-2 py-1 text-[9px] font-semibold"
           style={{ background: hexToRgba(modelColor.accent, 0.10), color: modelColor.text }}
         >
-          {items.length} concepts
+          {items.length} {t('concepts')}
         </span>
       </div>
       <FeatureTreemapChart items={items} modelColor={modelColor} expanded={expanded} />
@@ -1324,6 +1343,7 @@ function FeatureTreemapPanel({ items, modelColor, expanded = false }) {
 }
 
 function FeatureTreemapChart({ items, modelColor, expanded = false }) {
+  const { t } = useI18n();
   const option = useMemo(() => {
     const compact = !expanded;
     const maxAct = Math.max(...items.map((item) => item.max_activation ?? 0), 1);
@@ -1358,9 +1378,9 @@ function FeatureTreemapChart({ items, modelColor, expanded = false }) {
         formatter: (params) => {
           const item = params.data ?? {};
           return `<div style="font-weight:700;margin-bottom:4px;">${item.rawLabel ?? params.name}</div>
-            <div>feature #${item.feature_id ?? ''}</div>
-            <div>coverage: <b>${item.fired_token_count ?? 0}</b> tokens</div>
-            <div>max activation: <b>${Number(item.max_activation ?? 0).toFixed(4)}</b></div>`;
+            <div>${t('feature')} #${item.feature_id ?? ''}</div>
+            <div>${t('coverage')}: <b>${item.fired_token_count ?? 0}</b> ${t('tokens')}</div>
+            <div>${t('maxActivation')}: <b>${Number(item.max_activation ?? 0).toFixed(4)}</b></div>`;
         },
       },
       series: [
@@ -1415,7 +1435,7 @@ function FeatureTreemapChart({ items, modelColor, expanded = false }) {
         },
       ],
     };
-  }, [expanded, items, modelColor]);
+  }, [expanded, items, modelColor, t]);
 
   return (
     <EChartCanvas
