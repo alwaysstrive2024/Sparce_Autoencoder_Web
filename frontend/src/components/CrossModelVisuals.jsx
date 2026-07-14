@@ -4,6 +4,7 @@ import { Boxes, GitCompareArrows, Maximize2, Search, Workflow, X } from 'lucide-
 import { getModelColor } from '../constants';
 import EChartCanvas from './EChartCanvas';
 import FloatingTooltip from './FloatingTooltip';
+import { useI18n } from '../i18n';
 
 function hexToRgba(hex, alpha) {
   const safe = typeof hex === 'string' && hex.startsWith('#') ? hex : '#1661ab';
@@ -70,6 +71,7 @@ function deriveCrossModelData(results) {
 }
 
 export default function CrossModelVisuals({ results }) {
+  const { t } = useI18n();
   const [activeView, setActiveView] = useState('alignment');
   const modelKeys = results?.metadata?.selected_models ?? [];
   const data = useMemo(
@@ -80,9 +82,9 @@ export default function CrossModelVisuals({ results }) {
   if (modelKeys.length < 2) return null;
 
   const tabs = [
-    { id: 'alignment', label: 'Alignment', icon: Workflow },
-    { id: 'matrix', label: 'Matrix', icon: GitCompareArrows },
-    { id: 'sets', label: 'Sets', icon: Boxes },
+    { id: 'alignment', label: t('visualTabs.alignment'), icon: Workflow },
+    { id: 'matrix', label: t('visualTabs.matrix'), icon: GitCompareArrows },
+    { id: 'sets', label: t('visualTabs.sets'), icon: Boxes },
   ];
 
   return (
@@ -102,9 +104,9 @@ export default function CrossModelVisuals({ results }) {
           <GitCompareArrows size={16} />
         </div>
         <div>
-          <h2 className="text-sm font-bold text-white">Cross-model Concept View</h2>
+          <h2 className="text-sm font-bold text-white">{t('crossModelConceptView')}</h2>
           <p className="text-[10px] text-white/35 mt-0.5">
-            {data.total_unique_concepts ?? 0} concepts across {modelKeys.length} models
+            {t('conceptsAcrossModels', { concepts: data.total_unique_concepts ?? 0, models: modelKeys.length })}
           </p>
         </div>
         <div className="ml-auto flex items-center gap-1 p-1 rounded-lg bg-white/70 border border-white/[0.08] overflow-x-auto">
@@ -147,15 +149,16 @@ export default function CrossModelVisuals({ results }) {
 }
 
 function AlignmentView({ data, results, modelKeys }) {
+  const { t } = useI18n();
   const concepts = [...(data.shared_all ?? []), ...(data.partial_overlap ?? [])].slice(0, 28);
 
   if (!concepts.length) {
-    return <EmptyCross message="No overlapping concepts" />;
+    return <EmptyCross message={t('noConceptData')} />;
   }
 
   return (
     <CrossChartFrame
-      title="Cross-model concept alignment"
+      title={t('crossModelAlignment')}
       modalContent={
         <AlignmentPanel
           concepts={concepts}
@@ -175,15 +178,16 @@ function AlignmentView({ data, results, modelKeys }) {
 }
 
 function AlignmentPanel({ concepts, results, modelKeys, expanded = false }) {
+  const { t } = useI18n();
   return (
     <div className={`flex h-full w-full flex-col rounded-lg bg-white/75 p-4 ${expanded ? 'min-h-[620px]' : 'min-h-[340px]'}`}>
       <div className="mb-2 flex items-start justify-between gap-3">
         <div>
           <div className="text-[10px] font-bold text-[#5f1f69]">
-            Cross-model concept alignment
+            {t('crossModelAlignment')}
           </div>
           <div className="mt-0.5 text-[9px] text-white/35">
-            graph · drag nodes · scroll to zoom · hover concepts
+            {t('graphHelp')}
           </div>
         </div>
         <span className="rounded-md bg-[rgba(130,49,142,0.10)] px-2 py-1 text-[9px] font-semibold text-[#5f1f69]">
@@ -201,6 +205,7 @@ function AlignmentPanel({ concepts, results, modelKeys, expanded = false }) {
 }
 
 function AlignmentGraphChart({ concepts, results, modelKeys, expanded = false }) {
+  const { t } = useI18n();
   const option = useMemo(() => {
     const compact = !expanded;
     const maxAct = Math.max(...concepts.flatMap((concept) => concept.records.map((record) => record.max_activation ?? 0)), 1);
@@ -282,15 +287,15 @@ function AlignmentGraphChart({ concepts, results, modelKeys, expanded = false })
         formatter: (params) => {
           if (params.dataType === 'edge') {
             return `<div style="font-weight:700;margin-bottom:4px;">${params.data.concept_label ?? ''}</div>
-              <div>${params.data.model_key ?? ''} · feature #${params.data.feature_id ?? ''}</div>
-              <div>max activation: <b>${Number(params.data.value ?? 0).toFixed(4)}</b></div>`;
+              <div>${params.data.model_key ?? ''} · ${t('feature')} #${params.data.feature_id ?? ''}</div>
+              <div>${t('maxActivation')}: <b>${Number(params.data.value ?? 0).toFixed(4)}</b></div>`;
           }
           if (params.data.nodeType === 'model') {
             return `<div style="font-weight:700;">${params.data.rawLabel ?? params.name}</div>`;
           }
           return `<div style="font-weight:700;margin-bottom:4px;">${params.data.rawLabel ?? params.name}</div>
-            <div>models: <b>${params.data.model_count ?? 0}</b></div>
-            <div>avg activation: <b>${Number(params.data.value ?? 0).toFixed(4)}</b></div>`;
+            <div>${t('models')}: <b>${params.data.model_count ?? 0}</b></div>
+            <div>${t('avg')} ${t('activation')}: <b>${Number(params.data.value ?? 0).toFixed(4)}</b></div>`;
         },
       },
       series: [
@@ -316,7 +321,7 @@ function AlignmentGraphChart({ concepts, results, modelKeys, expanded = false })
         },
       ],
     };
-  }, [concepts, expanded, modelKeys, results]);
+  }, [concepts, expanded, modelKeys, results, t]);
 
   return (
     <EChartCanvas
@@ -329,15 +334,16 @@ function AlignmentGraphChart({ concepts, results, modelKeys, expanded = false })
 }
 
 function MatrixView({ data, modelKeys }) {
+  const { t } = useI18n();
   const concepts = [...(data.shared_all ?? []), ...(data.partial_overlap ?? [])].slice(0, 34);
 
   if (!concepts.length) {
-    return <EmptyCross message="No shared concepts" />;
+    return <EmptyCross message={t('noConceptData')} />;
   }
 
   return (
     <CrossChartFrame
-      title="Concept presence matrix"
+      title={t('conceptPresenceMatrix')}
       modalContent={<MatrixPanel concepts={concepts} modelKeys={modelKeys} expanded />}
     >
       <MatrixPanel concepts={concepts.slice(0, 28)} modelKeys={modelKeys} />
@@ -346,15 +352,16 @@ function MatrixView({ data, modelKeys }) {
 }
 
 function MatrixPanel({ concepts, modelKeys, expanded = false }) {
+  const { t } = useI18n();
   return (
     <div className={`flex h-full w-full flex-col rounded-lg bg-white/75 p-4 ${expanded ? 'min-h-[600px]' : 'min-h-[340px]'}`}>
       <div className="mb-2 flex items-start justify-between gap-3">
         <div>
           <div className="text-[10px] font-bold text-[#5f1f69]">
-            Concept presence matrix
+            {t('conceptPresenceMatrix')}
           </div>
           <div className="mt-0.5 text-[9px] text-white/35">
-            model-colored heatmap · hover values · scroll to browse concepts
+            {t('matrixHelp')}
           </div>
         </div>
         <div className="flex flex-wrap justify-end gap-1.5">
@@ -379,6 +386,7 @@ function MatrixPanel({ concepts, modelKeys, expanded = false }) {
 }
 
 function MatrixGrid({ concepts, modelKeys, expanded = false }) {
+  const { t } = useI18n();
   const [hoveredCell, setHoveredCell] = useState(null);
   const maxByModel = useMemo(() => new Map(modelKeys.map((key) => {
     const values = concepts
@@ -403,7 +411,7 @@ function MatrixGrid({ concepts, modelKeys, expanded = false }) {
         }}
       >
         <div className="sticky left-0 top-0 z-20 rounded-md bg-white/95 px-2 py-2 text-[9px] font-bold uppercase tracking-wide text-white/35">
-          concept
+          {t('concept')}
         </div>
         {modelKeys.map((key, index) => {
           const color = getModelColor(index);
@@ -492,9 +500,9 @@ function MatrixGrid({ concepts, modelKeys, expanded = false }) {
             </div>
             {hoveredRecord ? (
               <div className="grid grid-cols-3 gap-1 text-center">
-                <MetricPill label="feature" value={`#${hoveredRecord.feature_id}`} color={hoveredColor} />
-                <MetricPill label="max" value={Number(hoveredRecord.max_activation ?? 0).toFixed(2)} color={hoveredColor} />
-                <MetricPill label="tokens" value={hoveredRecord.fired_token_count ?? 0} color={hoveredColor} />
+                <MetricPill label={t('feature')} value={`#${hoveredRecord.feature_id}`} color={hoveredColor} />
+                <MetricPill label={t('max')} value={Number(hoveredRecord.max_activation ?? 0).toFixed(2)} color={hoveredColor} />
+                <MetricPill label={t('tokens')} value={hoveredRecord.fired_token_count ?? 0} color={hoveredColor} />
               </div>
             ) : (
               <div className="mono rounded-md bg-slate-100 px-2 py-1 text-center text-[11px] font-bold text-slate-500">
@@ -509,6 +517,7 @@ function MatrixGrid({ concepts, modelKeys, expanded = false }) {
 }
 
 function CrossChartFrame({ children, title, modalContent }) {
+  const { t } = useI18n();
   const [soloOpen, setSoloOpen] = useState(false);
   const webCanvasStyle = { width: 'min(1260px, 100%)' };
 
@@ -533,7 +542,7 @@ function CrossChartFrame({ children, title, modalContent }) {
             color: '#5f1f69',
             boxShadow: '0 8px 20px rgba(22,97,171,0.12)',
           }}
-          title="Open image view"
+          title={t('openImageView')}
         >
           <Maximize2 size={14} />
         </button>
@@ -569,7 +578,7 @@ function CrossChartFrame({ children, title, modalContent }) {
               <span className="text-sm font-bold" style={{ color: '#5f1f69' }}>
                 {title}
               </span>
-              <span className="mono text-[10px] text-white/35">scroll to browse</span>
+              <span className="mono text-[10px] text-white/35">{t('scrollToBrowse')}</span>
               <button
                 type="button"
                 onClick={() => setSoloOpen(false)}
@@ -579,7 +588,7 @@ function CrossChartFrame({ children, title, modalContent }) {
                   borderColor: 'rgba(22,97,171,0.22)',
                   color: '#5f1f69',
                 }}
-                title="Close image view"
+                title={t('closeImageView')}
               >
                 <X size={15} />
               </button>
@@ -598,9 +607,10 @@ function CrossChartFrame({ children, title, modalContent }) {
 }
 
 function SetView({ data, results, modelKeys }) {
+  const { t } = useI18n();
   return (
     <CrossChartFrame
-      title="Cross-model concept sets"
+      title={t('crossModelSets')}
       modalContent={
         <SetExplorer
           data={data}
@@ -620,12 +630,13 @@ function SetView({ data, results, modelKeys }) {
 }
 
 function SetExplorer({ data, results, modelKeys, expanded = false }) {
+  const { t } = useI18n();
   const buckets = useMemo(() => {
     const base = [
       {
         id: 'shared',
-        title: 'Shared by all',
-        subtitle: `${modelKeys.length} / ${modelKeys.length} models`,
+        title: t('sharedByAll'),
+        subtitle: t('modelsCount', { count: modelKeys.length, total: modelKeys.length }),
         color: {
           accent: '#4f46e5',
           text: '#3730a3',
@@ -636,8 +647,8 @@ function SetExplorer({ data, results, modelKeys, expanded = false }) {
       },
       {
         id: 'partial',
-        title: 'Partial overlap',
-        subtitle: '2+ models',
+        title: t('partialOverlap'),
+        subtitle: t('twoPlusModels'),
         color: {
           accent: '#0f766e',
           text: '#0f5f58',
@@ -653,7 +664,7 @@ function SetExplorer({ data, results, modelKeys, expanded = false }) {
       const name = results?.models_data?.[key]?.model_metadata?.model_name ?? key;
       return {
         id: `unique:${key}`,
-        title: `Only in ${truncateLabel(name, 18)}`,
+        title: t('onlyIn', { name: truncateLabel(name, 18) }),
         subtitle: key,
         color,
         items: data.unique_by_model?.[key] ?? [],
@@ -661,7 +672,7 @@ function SetExplorer({ data, results, modelKeys, expanded = false }) {
     });
 
     return [...base, ...uniqueBuckets];
-  }, [data, modelKeys, results]);
+  }, [data, modelKeys, results, t]);
 
   const firstBucketWithItems = buckets.find((bucket) => bucket.items.length) ?? buckets[0];
   const [activeBucketId, setActiveBucketId] = useState(firstBucketWithItems?.id ?? 'shared');
@@ -692,10 +703,10 @@ function SetExplorer({ data, results, modelKeys, expanded = false }) {
       <div className="mb-3 flex items-start justify-between gap-3">
         <div>
           <div className="text-[10px] font-bold text-[#5f1f69]">
-            Concept set explorer
+            {t('conceptSetExplorer')}
           </div>
           <div className="mt-0.5 text-[9px] text-white/35">
-            filter sets · click concepts · inspect per-model records
+            {t('setHelp')}
           </div>
         </div>
         <div
@@ -706,7 +717,7 @@ function SetExplorer({ data, results, modelKeys, expanded = false }) {
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search concepts"
+            placeholder={t('searchConcepts')}
             className="min-w-0 flex-1 bg-transparent text-xs font-medium text-slate-700 outline-none placeholder:text-slate-400"
           />
         </div>
@@ -715,7 +726,7 @@ function SetExplorer({ data, results, modelKeys, expanded = false }) {
       <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[220px_minmax(0,1fr)_minmax(250px,0.85fr)]">
         <div className="min-h-0 overflow-y-auto rounded-lg border bg-white/70 p-2" style={{ borderColor: 'rgba(130,49,142,0.12)' }}>
           <div className="mb-1 px-1 text-[9px] font-bold uppercase tracking-wide text-white/35">
-            Sets
+            {t('sets')}
           </div>
           <div className="space-y-1.5">
             {buckets.map((bucket) => {
@@ -755,7 +766,7 @@ function SetExplorer({ data, results, modelKeys, expanded = false }) {
         <div className="min-h-0 overflow-y-auto rounded-lg border bg-white/70 p-3" style={{ borderColor: 'rgba(130,49,142,0.12)' }}>
           <div className="mb-2 flex items-center justify-between gap-2">
             <div className="text-[9px] font-bold uppercase tracking-wide text-white/35">
-              Concepts
+              {t('concepts')}
             </div>
             <span
               className="rounded-md px-2 py-1 text-[9px] font-semibold"
@@ -788,7 +799,10 @@ function SetExplorer({ data, results, modelKeys, expanded = false }) {
                     </div>
                     <div className="mt-1 flex items-center justify-between gap-2">
                       <span className="mono text-[8px] text-white/35">
-                        {item.model_count ?? item.records?.length ?? 1} model{(item.model_count ?? item.records?.length ?? 1) === 1 ? '' : 's'}
+                        {t('modelsCount', {
+                          count: item.model_count ?? item.records?.length ?? 1,
+                          total: modelKeys.length,
+                        })}
                       </span>
                       <span className="mono text-[8px] font-semibold" style={{ color: activeBucket.color.text }}>
                         {Number(item.avg_activation ?? 0).toFixed(2)}
@@ -800,7 +814,7 @@ function SetExplorer({ data, results, modelKeys, expanded = false }) {
             </div>
           ) : (
             <div className="flex h-full min-h-[160px] items-center justify-center rounded-lg border border-dashed border-white/[0.12] text-xs text-white/25">
-              No concepts match this filter.
+              {t('noConceptsMatch')}
             </div>
           )}
         </div>
@@ -817,6 +831,7 @@ function SetExplorer({ data, results, modelKeys, expanded = false }) {
 }
 
 function ConceptDetail({ concept, modelKeys, results, color }) {
+  const { t } = useI18n();
   const recordByModel = useMemo(() => {
     const map = new Map();
     for (const record of concept?.records ?? []) map.set(record.model_key, record);
@@ -826,7 +841,7 @@ function ConceptDetail({ concept, modelKeys, results, color }) {
   if (!concept) {
     return (
       <div className="flex min-h-0 items-center justify-center rounded-lg border border-dashed border-white/[0.12] bg-white/60 p-4 text-center text-xs text-white/25">
-        Select a concept to inspect records.
+        {t('selectConcept')}
       </div>
     );
   }
@@ -841,7 +856,7 @@ function ConceptDetail({ concept, modelKeys, results, color }) {
           {concept.label}
         </div>
         <div className="mono mt-1 text-[9px] text-white/35">
-          avg max activation {Number(concept.avg_activation ?? 0).toFixed(4)}
+          {t('avgMaxActivation')} {Number(concept.avg_activation ?? 0).toFixed(4)}
         </div>
       </div>
 
@@ -870,9 +885,9 @@ function ConceptDetail({ concept, modelKeys, results, color }) {
               </div>
               {record && (
                 <div className="mt-2 grid grid-cols-3 gap-1 text-center">
-                  <MetricPill label="max" value={Number(record.max_activation ?? 0).toFixed(2)} color={modelColor} />
-                  <MetricPill label="avg" value={Number(record.avg_activation ?? 0).toFixed(2)} color={modelColor} />
-                  <MetricPill label="tok" value={record.fired_token_count ?? 0} color={modelColor} />
+                  <MetricPill label={t('max')} value={Number(record.max_activation ?? 0).toFixed(2)} color={modelColor} />
+                  <MetricPill label={t('avg')} value={Number(record.avg_activation ?? 0).toFixed(2)} color={modelColor} />
+                  <MetricPill label={t('tok')} value={record.fired_token_count ?? 0} color={modelColor} />
                 </div>
               )}
             </div>

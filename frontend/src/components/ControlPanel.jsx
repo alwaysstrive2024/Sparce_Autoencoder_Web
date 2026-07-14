@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Plus, X, ChevronDown, Cpu, SlidersHorizontal, Play, Check, Search } from 'lucide-react';
+import { useI18n } from '../i18n';
 
 /**
  * ControlPanel
@@ -28,6 +29,7 @@ export default function ControlPanel({
   onRun,
   isLoading,
 }) {
+  const { t } = useI18n();
   const baseId = useId();
   const MAX_MODELS = 3;
 
@@ -63,7 +65,7 @@ export default function ControlPanel({
           style={{ background: 'linear-gradient(180deg, #82318e, #1661ab)' }}
         />
         <h2 className="text-sm font-semibold text-white/70 uppercase tracking-wider">
-          Control Panel
+          {t('controlPanel')}
         </h2>
       </div>
 
@@ -76,7 +78,7 @@ export default function ControlPanel({
               htmlFor="prompt-input"
               className="block text-xs font-semibold text-white/50 mb-2 uppercase tracking-wider"
             >
-              Input Prompt
+              {t('inputPrompt')}
             </label>
             <textarea
               id="prompt-input"
@@ -84,7 +86,7 @@ export default function ControlPanel({
               onChange={(e) => setPrompt(e.target.value)}
               rows={3}
               className="input-base w-full px-4 py-3 text-sm resize-none leading-relaxed"
-              placeholder="Enter a sentence to analyse… e.g. Apple announced iPhone 18 at WWDC."
+              placeholder={t('promptPlaceholder')}
             />
           </div>
 
@@ -93,7 +95,7 @@ export default function ControlPanel({
             <div className="flex items-center justify-between mb-2">
               <label className="text-xs font-semibold text-white/50 uppercase tracking-wider flex items-center gap-1.5">
                 <Cpu size={11} className="opacity-60" />
-                Models to Compare
+                {t('modelsToCompare')}
               </label>
               <button
                 id="add-model-btn"
@@ -102,7 +104,7 @@ export default function ControlPanel({
                 className="btn-ghost text-xs flex items-center gap-1 disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 <Plus size={12} />
-                Add Model
+                {t('addModel')}
                 {selectedModels.length > 0 && (
                   <span
                     className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold"
@@ -121,7 +123,7 @@ export default function ControlPanel({
                 style={{ border: '1px dashed rgba(22,97,171,0.32)', background: 'rgba(22,97,171,0.075)' }}
               >
                 <Plus size={14} className="opacity-50" />
-                Click &quot;Add Model&quot; to select up to 3 LLMs to compare
+                {t('addModelHint')}
               </div>
             )}
 
@@ -137,6 +139,7 @@ export default function ControlPanel({
                   chosenKeys={chosenKeys}
                   onUpdate={updateModelKey}
                   onRemove={removeModel}
+                  t={t}
                 />
               ))}
             </div>
@@ -153,7 +156,7 @@ export default function ControlPanel({
             <div className="flex items-center gap-1.5">
               <SlidersHorizontal size={11} className="text-white/40" />
               <span className="text-xs font-semibold text-white/50 uppercase tracking-wider">
-                Top-K Features
+                {t('topKFeatures')}
               </span>
             </div>
 
@@ -177,7 +180,7 @@ export default function ControlPanel({
             </div>
 
             <p className="text-[10px] text-white/25 leading-snug">
-              Tokens shown per model column. Range 1–50.
+              {t('topKHelp')}
             </p>
           </div>
 
@@ -206,7 +209,7 @@ export default function ControlPanel({
               }}
             />
             <Play size={15} className="relative z-10" />
-            <span className="relative z-10">Run Comparison</span>
+            <span className="relative z-10 whitespace-nowrap">{t('runComparison')}</span>
           </button>
 
           {/* Pipeline mode legend */}
@@ -237,7 +240,7 @@ const MODEL_ACCENT = {
   'llama-3.2-1b': { color: '#3730a3', bg: 'rgba(79,70,229,0.15)' },
 };
 
-function ModelSelectorRow({ rowId, index, modelKey, availableModels, chosenKeys, onUpdate, onRemove }) {
+function ModelSelectorRow({ rowId, index, modelKey, availableModels, chosenKeys, onUpdate, onRemove, t }) {
   const labelColors = ['#82318e', '#1661ab', '#4f46e5'];
   const accentColor = labelColors[index] ?? '#82318e';
   const accent = MODEL_ACCENT[modelKey] ?? { color: accentColor, bg: `${accentColor}18` };
@@ -342,10 +345,10 @@ function ModelSelectorRow({ rowId, index, modelKey, availableModels, chosenKeys,
           </span>
           <span className="min-w-0 flex-1">
             <span className={`block truncate ${selectedModel ? 'text-slate-800' : 'text-slate-500'}`}>
-              {selectedModel?.display_name ?? selectedModel?.key ?? 'Select a model...'}
+              {selectedModel?.display_name ?? selectedModel?.key ?? t('selectModel')}
             </span>
             <span className="mono mt-0.5 block truncate text-[9px] font-medium text-white/30">
-              {selectedModel?.key ?? 'Choose up to 3 models'}
+              {selectedModel?.key ?? t('chooseModels')}
             </span>
           </span>
         </button>
@@ -385,7 +388,7 @@ function ModelSelectorRow({ rowId, index, modelKey, availableModels, chosenKeys,
                   ref={searchRef}
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Search models"
+                  placeholder={t('searchModels')}
                   className="min-w-0 flex-1 bg-transparent text-xs font-medium text-slate-700 outline-none placeholder:text-slate-400"
                 />
               </div>
@@ -431,7 +434,7 @@ function ModelSelectorRow({ rowId, index, modelKey, availableModels, chosenKeys,
                           {model.display_name ?? model.key}
                         </span>
                         <span className="mono mt-0.5 block truncate text-[9px] text-white/30">
-                          {disabled ? 'Already selected' : model.key}
+                          {disabled ? t('selected') : model.key}
                         </span>
                       </span>
                       {selected && <Check size={14} style={{ color: accent.color }} />}
@@ -440,7 +443,7 @@ function ModelSelectorRow({ rowId, index, modelKey, availableModels, chosenKeys,
                 })
               ) : (
                 <div className="px-3 py-6 text-center text-xs font-medium text-white/30">
-                  No matching models
+                  {t('noModelsFound')}
                 </div>
               )}
             </div>

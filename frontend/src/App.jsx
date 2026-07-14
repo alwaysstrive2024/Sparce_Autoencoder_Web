@@ -6,10 +6,12 @@ import ControlPanel from './components/ControlPanel';
 import ModelColumn from './components/ModelColumn';
 import CrossModelVisuals from './components/CrossModelVisuals';
 import LoadingOverlay from './components/LoadingOverlay';
+import { useI18n } from './i18n';
 import fangcunLogo from '../fangcun_icon.svg';
 import fangcunLogoPng from '../fangcun_logo.png';
 
 export default function App() {
+  const { language, toggleLanguage, t } = useI18n();
   // ── State ────────────────────────────────────────────────────────────────
   const [availableModels, setAvailableModels] = useState(FALLBACK_MODELS);
   const [selectedModels, setSelectedModels] = useState([]); // [{id, modelKey}]
@@ -92,7 +94,7 @@ export default function App() {
           boxShadow: '0 10px 30px rgba(22,97,171,0.14)',
         }}
       >
-        <div className="max-w-screen-2xl mx-auto px-6 py-3 flex items-center gap-3">
+        <div className="max-w-screen-2xl mx-auto px-6 py-3 flex flex-wrap items-center gap-3">
           {/* Logo */}
           <div
             className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
@@ -110,13 +112,13 @@ export default function App() {
             />
           </div>
 
-          <div className="leading-tight">
-            <h1 className="text-sm font-bold text-white">Fangcun AI Dashboard</h1>
-            <p className="text-[10px] text-white/35"> Mechanistic Interpretability</p>
+          <div className="min-w-0 leading-tight">
+            <h1 className="truncate text-sm font-bold text-white">{t('brandDashboard')}</h1>
+            <p className="truncate text-[10px] text-white/35">{t('mechanisticInterpretability')}</p>
           </div>
 
           {/* Pipeline badges */}
-          <div className="ml-4 flex items-center gap-2 flex-wrap">
+          <div className="ml-0 flex min-w-0 flex-wrap items-center gap-2 sm:ml-4">
             <PipelineBadge label="LLM" color="#82318e" />
             <span className="text-white/20 text-xs">+</span>
             <PipelineBadge label="XAI" color="#1661ab" />
@@ -124,13 +126,17 @@ export default function App() {
             <PipelineBadge label="VRAM Hot-Swap" color="#4f46e5" />
           </div>
 
-          {/* Backend status */}
+          <div className="ml-auto flex min-w-0 items-center gap-2">
+            <LanguageToggle language={language} onToggle={toggleLanguage} />
+
+            {/* Backend status */}
           {pipelineMode === 'offline' && (
-            <div className="ml-auto flex items-center gap-2">
+            <div className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-              <span className="text-[10px] text-white/35">Backend offline</span>
+              <span className="text-[10px] text-white/35 whitespace-nowrap">{t('backendOffline')}</span>
             </div>
           )}
+          </div>
         </div>
       </header>
 
@@ -158,14 +164,14 @@ export default function App() {
           >
             <AlertCircle size={16} className="text-red-400 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              <p className="text-sm font-semibold text-red-300">Analysis failed</p>
+              <p className="text-sm font-semibold text-red-300">{t('analysisFailed')}</p>
               <p className="mono text-[10px] text-red-400/70 mt-0.5">{error}</p>
             </div>
             <button
               onClick={handleRun}
               className="flex items-center gap-1 text-[10px] text-red-300 hover:text-red-200"
             >
-              <RefreshCw size={11} /> Retry
+              <RefreshCw size={11} /> {t('retry')}
             </button>
           </div>
         )}
@@ -182,10 +188,10 @@ export default function App() {
               }}
             >
               <Zap size={11} style={{ color: '#82318e' }} className="flex-shrink-0" />
-              <span className="font-semibold text-white/60">Prompt:</span>
-              <span className="italic truncate">&quot;{results.metadata?.prompt}&quot;</span>
+              <span className="font-semibold text-white/60">{t('modelInput')}:</span>
+              <span className="italic truncate">&quot;{results.metadata?.model_prompt ?? results.metadata?.prompt}&quot;</span>
               <span className="ml-auto flex-shrink-0">
-                {activeModelKeys.length} model{activeModelKeys.length !== 1 ? 's' : ''} · Top-{topK}
+                {t('modelCountTopK', { count: activeModelKeys.length, topK })}
               </span>
             </div>
 
@@ -223,12 +229,12 @@ export default function App() {
       >
         <div className="max-w-screen-2xl mx-auto flex items-center justify-between text-[10px] text-white/20">
           <span>
-            Fangcun AI · Powered by{' '}
+            {t('brandFooter')} · Powered by{' '}
             <span style={{ color: '#82318e' }}>LLM</span> &{' '}
             <span style={{ color: '#1661ab' }}>XAI</span>
           </span>
           <span className="flex items-center gap-1">
-            <Cpu size={9} /> Sequential VRAM Hot-Swap Strategy
+            <Cpu size={9} /> {t('footerStrategy')}
           </span>
         </div>
       </footer>
@@ -254,7 +260,45 @@ function PipelineBadge({ label, color }) {
   );
 }
 
+function LanguageToggle({ language, onToggle }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="inline-flex h-7 w-[74px] flex-shrink-0 items-center justify-between rounded-lg border px-1 text-[10px] font-bold transition-all"
+      style={{
+        background: 'linear-gradient(135deg, rgba(255,255,255,0.92), rgba(239,245,255,0.86))',
+        borderColor: 'rgba(130,49,142,0.24)',
+        boxShadow: '0 8px 18px rgba(22,97,171,0.10)',
+        color: '#5f1f69',
+      }}
+      aria-label="Toggle language"
+      title="中文 / English"
+    >
+      <span
+        className="flex h-5 w-8 items-center justify-center rounded-md"
+        style={{
+          background: language === 'en' ? 'rgba(130,49,142,0.16)' : 'transparent',
+          color: language === 'en' ? '#5f1f69' : 'rgba(11,18,32,0.42)',
+        }}
+      >
+        EN
+      </span>
+      <span
+        className="flex h-5 w-8 items-center justify-center rounded-md"
+        style={{
+          background: language === 'zh' ? 'rgba(22,97,171,0.16)' : 'transparent',
+          color: language === 'zh' ? '#0d3f7a' : 'rgba(11,18,32,0.42)',
+        }}
+      >
+        中
+      </span>
+    </button>
+  );
+}
+
 function EmptyState({ hasModels }) {
+  const { t } = useI18n();
   return (
     <div
       className="flex flex-col items-center justify-center py-20 text-center animate-fade-up rounded-2xl"
@@ -272,27 +316,25 @@ function EmptyState({ hasModels }) {
           border: '1px solid rgba(130,49,142,0.30)',
         }}
       >
-        <img src={fangcunLogoPng} alt="Fangcun AI" className="h-11 w-11 object-contain" />
+        <img src={fangcunLogoPng} alt={t('brandFooter')} className="h-11 w-11 object-contain" />
       </div>
 
       <h3 className="text-base font-bold text-white/50 mb-1">
-        {hasModels ? 'Ready to analyse' : 'Select models to begin'}
+        {hasModels ? t('readyToAnalyse') : t('selectModelsBegin')}
       </h3>
       <p className="text-sm text-white/25 max-w-sm leading-relaxed">
-        {hasModels
-          ? 'Click "Run Comparison" to extract SAE features via LLM & XAI.'
-          : 'Click "Add Model" in the control panel to select up to 3 LLMs, then hit Run Comparison.'}
+        {hasModels ? t('readyHint') : t('emptyHint')}
       </p>
 
       {/* Pipeline diagram */}
       <div className="mt-8 flex items-center gap-3 text-[11px] text-white/25">
-        <PipelineStep emoji="🔬" label="LLM" sublabel="Hook activations" color="#82318e" />
+        <PipelineStep emoji="🔬" label="LLM" sublabel={t('hookActivations')} color="#82318e" />
         <Arrow />
-        <PipelineStep emoji="✨" label="XAI" sublabel="Encode features" color="#1661ab" />
+        <PipelineStep emoji="✨" label="XAI" sublabel={t('encodeFeatures')} color="#1661ab" />
         <Arrow />
-        <PipelineStep emoji="📊" label="Reports" sublabel="Global + Per-token" color="#4f46e5" />
+        <PipelineStep emoji="📊" label={t('reports')} sublabel={t('globalPerToken')} color="#4f46e5" />
         <Arrow />
-        <PipelineStep emoji="🗑️" label="VRAM Clear" sublabel="Hot-swap" color="#1661ab" />
+        <PipelineStep emoji="🗑️" label={t('vramClear')} sublabel={t('hotSwap')} color="#1661ab" />
       </div>
     </div>
   );

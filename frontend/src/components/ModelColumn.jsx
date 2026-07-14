@@ -3,6 +3,7 @@ import FeatureBars from './FeatureBars';
 import TextAttribution from './TextAttribution';
 import VisualizationSuite from './VisualizationSuite';
 import { downloadJSON } from '../utils/download';
+import { useI18n } from '../i18n';
 
 /**
  * ModelColumn
@@ -19,10 +20,12 @@ import { downloadJSON } from '../utils/download';
  *   modelColor — colour tokens
  */
 export default function ModelColumn({ modelKey, data, topK, modelColor }) {
+  const { t } = useI18n();
+
   if (!data) {
     return (
       <div className="glass-card p-6 flex items-center justify-center text-white/20 text-sm">
-        No data for {modelKey}
+        {t('noDataFor', { modelKey })}
       </div>
     );
   }
@@ -70,11 +73,11 @@ export default function ModelColumn({ modelKey, data, topK, modelColor }) {
 
             {/* Badges row */}
             <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-              <Badge icon={<Layers size={9} />} label={`Layer ${meta.layer}`} color={modelColor} />
+              <Badge icon={<Layers size={9} />} label={`${t('layer')} ${meta.layer}`} color={modelColor} />
               <Badge icon={<GitBranch size={9} />} label={meta.hook_point?.split('.').slice(-1)[0] ?? 'hook'} color={modelColor} />
               <Badge
                 icon={<Activity size={9} />}
-                label={`${data.report_1_global?.fired_features_summary?.length ?? 0} features`}
+                label={`${data.report_1_global?.fired_features_summary?.length ?? 0} ${t('features')}`}
                 color={modelColor}
               />
             </div>
@@ -93,13 +96,13 @@ export default function ModelColumn({ modelKey, data, topK, modelColor }) {
         <div className="flex gap-2 mt-3">
           <DownloadButton
             id={`dl-global-${modelKey}`}
-            label="Global Feature Report"
+            label={t('globalFeatureReport')}
             onClick={handleDownloadGlobal}
             color={modelColor}
           />
           <DownloadButton
             id={`dl-token-${modelKey}`}
-            label="Token Sequence Report"
+            label={t('tokenSequenceReport')}
             onClick={handleDownloadToken}
             color={modelColor}
           />
@@ -110,7 +113,7 @@ export default function ModelColumn({ modelKey, data, topK, modelColor }) {
       <div className="px-4 pt-4 pb-2">
         <SectionLabel
           icon={<Activity size={11} />}
-          text="Visual Exploration"
+          text={t('visualExploration')}
           color={modelColor}
         />
         <div className="mt-2">
@@ -140,7 +143,7 @@ export default function ModelColumn({ modelKey, data, topK, modelColor }) {
       >
         <SectionLabel
           icon={<span className="text-[10px]">🎨</span>}
-          text="Token Attribution Map"
+          text={t('tokenAttributionMap')}
           color={modelColor}
         />
         <div className="mt-2.5">

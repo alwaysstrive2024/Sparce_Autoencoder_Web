@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import FloatingTooltip from './FloatingTooltip';
+import { useI18n } from '../i18n';
 
 /**
  * TextAttribution
@@ -11,6 +12,7 @@ import FloatingTooltip from './FloatingTooltip';
  *   modelColor — colour tokens from constants.js
  */
 export default function TextAttribution({ modelData, modelColor }) {
+  const { t } = useI18n();
   const [hoveredToken, setHoveredToken] = useState(null);
 
   const tokenData = useMemo(() => {
@@ -47,7 +49,7 @@ export default function TextAttribution({ modelData, modelColor }) {
   }, [modelData]);
 
   if (!tokenData.length) {
-    return <p className="text-white/20 text-sm">No token data</p>;
+    return <p className="text-white/20 text-sm">{t('noTokenData')}</p>;
   }
 
   // Hex to rgba helper
@@ -63,7 +65,7 @@ export default function TextAttribution({ modelData, modelColor }) {
       {/* Token row */}
       <div
         className="text-[13px] leading-loose font-medium tracking-wide flex flex-wrap gap-y-1"
-        aria-label="Token attribution map"
+        aria-label={t('tokenAttributionMap')}
       >
         {tokenData.map((t) => {
           const isHovered = hoveredToken?.token?.index === t.index;
@@ -122,14 +124,14 @@ export default function TextAttribution({ modelData, modelColor }) {
 
       {/* Intensity scale legend */}
       <div className="mt-3 flex items-center gap-2">
-        <span className="text-[10px] text-white/25">SAE activation intensity:</span>
+        <span className="text-[10px] text-white/25">{t('activationIntensity')}</span>
         <div
           className="flex-1 h-1.5 rounded-full max-w-[120px]"
           style={{
             background: `linear-gradient(90deg, ${hexToRgba(modelColor.accent, 0.22)}, ${modelColor.accent})`,
           }}
         />
-        <span className="text-[10px] text-white/25">Low → High</span>
+        <span className="text-[10px] text-white/25">{t('lowHigh')}</span>
       </div>
     </div>
   );
