@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Hash, Flame } from 'lucide-react';
+import { useI18n } from '../i18n';
 
 /**
  * FeatureBars
@@ -12,6 +13,7 @@ import { Hash, Flame } from 'lucide-react';
  *   topK       — number of top features to display
  */
 export default function FeatureBars({ modelData, modelColor, topK }) {
+  const { t } = useI18n();
   const featureRows = useMemo(() => {
     const summary = modelData?.report_1_global?.fired_features_summary ?? [];
     return summary.slice(0, topK);
@@ -25,7 +27,7 @@ export default function FeatureBars({ modelData, modelColor, topK }) {
 
   if (!featureRows.length) {
     return (
-      <div className="text-white/20 text-sm text-center py-6">No feature data</div>
+      <div className="text-white/20 text-sm text-center py-6">{t('noFeatureData')}</div>
     );
   }
 
@@ -33,9 +35,9 @@ export default function FeatureBars({ modelData, modelColor, topK }) {
     <div className="space-y-2">
       {/* Column header */}
       <div className="flex items-center gap-2 pb-1 border-b border-white/[0.06]">
-        <span className="mono text-[9px] text-white/25 w-12 flex-shrink-0">Feature</span>
-        <span className="mono text-[9px] text-white/25 flex-1">Concept · peak activation</span>
-        <span className="mono text-[9px] text-white/25 w-12 text-right flex-shrink-0">peak</span>
+        <span className="mono text-[9px] text-white/25 w-12 flex-shrink-0">{t('feature')}</span>
+        <span className="mono text-[9px] text-white/25 flex-1">{t('conceptPeakActivation')}</span>
+        <span className="mono text-[9px] text-white/25 w-12 text-right flex-shrink-0">{t('peak')}</span>
       </div>
 
       <div
@@ -115,7 +117,7 @@ export default function FeatureBars({ modelData, modelColor, topK }) {
                   <span className="mono text-[9px] text-white/50 flex-shrink-0 flex items-center gap-1">
                     <Flame size={8} style={{ color: modelColor.accent }} />
                     {feat.max_activation.toFixed(2)}
-                    <span className="text-white/20">avg {feat.avg_activation.toFixed(2)}</span>
+                    <span className="text-white/20">{t('avg')} {feat.avg_activation.toFixed(2)}</span>
                   </span>
                 </div>
               </div>
@@ -124,9 +126,9 @@ export default function FeatureBars({ modelData, modelColor, topK }) {
               <span
                 className="mono text-[9px] w-12 text-right flex-shrink-0 font-bold"
                 style={{ color: feat.fired_token_count > 1 ? modelColor.text : 'rgba(11,18,32,0.58)' }}
-                title={`Fires on ${feat.fired_token_count} token(s) of this prompt`}
+                title={t('firesOnTokens', { count: feat.fired_token_count })}
               >
-                {feat.fired_token_count}tok
+                {feat.fired_token_count}{t('tok')}
               </span>
             </div>
           );
@@ -136,12 +138,12 @@ export default function FeatureBars({ modelData, modelColor, topK }) {
       {/* Legend */}
       <div className="flex items-center gap-3 pt-1 border-t border-white/[0.05] text-[9px] text-white/20">
         <span className="flex items-center gap-1">
-          <Hash size={8} />Feature ID
+          <Hash size={8} />{t('featureId')}
         </span>
         <span className="flex items-center gap-1">
-          <Flame size={8} />peak · avg activation
+          <Flame size={8} />{t('peakAvgActivation')}
         </span>
-        <span className="ml-auto">Bar length = max activation</span>
+        <span className="ml-auto">{t('barLengthMaxActivation')}</span>
       </div>
     </div>
   );
