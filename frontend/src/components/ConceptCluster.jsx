@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { RotateCcw } from 'lucide-react';
+import { useI18n } from '../i18n';
 
 /**
  * ConceptCluster
@@ -11,6 +12,7 @@ import { RotateCcw } from 'lucide-react';
  *   modelColor — color tokens from constants.js
  */
 export default function ConceptCluster({ modelData, modelColor }) {
+  const { t } = useI18n();
   const [hoveredIdx, setHoveredIdx] = useState(null);
 
   const concepts = useMemo(() => {
@@ -52,7 +54,7 @@ export default function ConceptCluster({ modelData, modelColor }) {
   if (!concepts.length) {
     return (
       <div className="flex items-center justify-center h-48 text-white/20 text-sm">
-        No concept data
+        {t('noConceptData')}
       </div>
     );
   }
@@ -73,7 +75,7 @@ export default function ConceptCluster({ modelData, modelColor }) {
               className="absolute top-2 right-2 z-10 p-1.5 rounded-lg bg-white/5 hover:bg-white/10 
                          border border-white/10 text-white/50 hover:text-white/80 transition-colors
                          backdrop-blur-sm shadow-sm flex items-center justify-center"
-              title="Reset Zoom"
+              title={t('resetZoom')}
             >
               <RotateCcw size={14} />
             </button>
@@ -266,7 +268,7 @@ export default function ConceptCluster({ modelData, modelColor }) {
           letterSpacing="0.06em"
           textDecoration="none"
         >
-          PROMPT
+          {t('promptUpper')}
         </text>
         <text
           x={CX}
@@ -289,14 +291,14 @@ export default function ConceptCluster({ modelData, modelColor }) {
         <div className="flex items-center gap-3">
           <span className="flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full" style={{ background: modelColor.accent, opacity: 0.35 }} />
-            Low activation
+            {t('lowActivation')}
           </span>
           <span className="flex items-center gap-1">
             <span className="w-4 h-4 rounded-full" style={{ background: modelColor.accent, opacity: 0.88 }} />
-            High activation
+            {t('highActivation')}
           </span>
         </div>
-        <span className="text-white/20 italic">Scroll to zoom, drag to pan</span>
+        <span className="text-white/20 italic">{t('scrollZoomPan')}</span>
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { PIPELINE_STEPS } from '../constants';
+import { useI18n } from '../i18n';
 
 /**
  * LoadingOverlay
@@ -11,6 +12,7 @@ import { PIPELINE_STEPS } from '../constants';
  *   availableModels {object[]}  — from /models endpoint, for display_name lookup
  */
 export default function LoadingOverlay({ models, availableModels }) {
+  const { language, t } = useI18n();
   const [logLines, setLogLines] = useState([]);
   const [currentModelIdx, setCurrentModelIdx] = useState(0);
   const [currentStep, setCurrentStep] = useState(0);
@@ -20,6 +22,19 @@ export default function LoadingOverlay({ models, availableModels }) {
   // Build a flat sequence of steps: for each model → all PIPELINE_STEPS, then a "done" marker.
   const getDisplayName = (key) =>
     availableModels.find((m) => m.key === key)?.display_name ?? key;
+
+  const stepText = (stepIndex, modelName) => {
+    switch (stepIndex) {
+      case 0: return t('loadingModel', { modelName });
+      case 1: return t('registeringHook');
+      case 2: return t('runningForward');
+      case 3: return t('loadingSAE');
+      case 4: return t('encodingActivations');
+      case 5: return t('buildingReports');
+      case 6: return t('clearingVram');
+      default: return PIPELINE_STEPS[stepIndex]?.text?.(modelName) ?? '';
+    }
+  };
 
   // Advance through pipeline steps at a realistic pace
   useEffect(() => {
@@ -36,7 +51,7 @@ export default function LoadingOverlay({ models, availableModels }) {
     setLogLines([
       {
         type: 'header',
-        text: `Model ${mIdx + 1} / ${models.length}: ${getDisplayName(models[mIdx])}`,
+        text: `${t('processingModel', { current: mIdx + 1, total: models.length })}: ${getDisplayName(models[mIdx])}`,
         key: models[mIdx],
       },
     ]);
@@ -58,7 +73,7 @@ export default function LoadingOverlay({ models, availableModels }) {
           icon: step.icon,
           tool: step.tool,
           toolColor: step.toolColor,
-          text: step.text(modelName),
+          text: stepText(sIdx, modelName),
           id: `${mIdx}-${sIdx}`,
         },
       ]);
@@ -77,7 +92,7 @@ export default function LoadingOverlay({ models, availableModels }) {
               ...prev,
               {
                 type: 'header',
-                text: `Model ${mIdx + 1} / ${models.length}: ${getDisplayName(models[mIdx])}`,
+                text: `${t('processingModel', { current: mIdx + 1, total: models.length })}: ${getDisplayName(models[mIdx])}`,
                 key: models[mIdx],
               },
             ]);
@@ -87,7 +102,7 @@ export default function LoadingOverlay({ models, availableModels }) {
     }, 420);
 
     return () => clearInterval(interval);
-  }, [models.join(',')]); // eslint-disable-line
+  }, [models.join(','), language]); // eslint-disable-line
 
   // Auto-scroll log
   useEffect(() => {
@@ -150,10 +165,10 @@ export default function LoadingOverlay({ models, availableModels }) {
 
           <div>
             <h2 className="font-bold text-base text-white leading-tight">
-              Running Interpretability Pipeline
+              {t('runningPipeline')}
             </h2>
             <p className="text-xs text-white/40 mt-0.5">
-              LLM + XAI — Sequential hot-swap mode
+              {t('hotSwapMode')}
             </p>
           </div>
 
@@ -257,7 +272,7 @@ export default function LoadingOverlay({ models, availableModels }) {
           )}
           {done && (
             <div className="mono text-[10px] mt-1" style={{ color: '#1661ab' }}>
-              ✅ All models processed. Awaiting response…
+              ✅ {t('allModelsProcessed')}
             </div>
           )}
         </div>
@@ -266,7 +281,7 @@ export default function LoadingOverlay({ models, availableModels }) {
         <div className="px-4 pb-5">
           <div className="flex justify-between text-[10px] text-white/35 mb-1.5 mono">
             <span>
-              Processing model {Math.min(currentModelIdx + 1, models.length)} of {models.length}
+              {t('processingModel', { current: Math.min(currentModelIdx + 1, models.length), total: models.length })}
             </span>
             <span>{Math.round(progress)}%</span>
           </div>
