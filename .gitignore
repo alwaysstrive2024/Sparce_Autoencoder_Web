@@ -23,10 +23,10 @@ debug_test.py
 *.pfx
 # 用户本地保存的 Sakura/TLS 材料与访问密钥；整个目录禁止进入 Git。
 sae-web-tls/
-# Vite 会自动读取这两个文件。按部署环境在本机维护，避免后续误把
-# 内网 API 地址或其他环境相关配置提交到仓库。
-frontend/.env.development
-frontend/.env.production
+# Vite 会自动读取环境文件。按部署环境在本机维护，避免后续误把
+# 内网 API 地址、令牌或其他环境相关配置提交到仓库；示例模板除外。
+frontend/.env*
+!frontend/.env.example
 
 # Python 本地运行/语法检查产物不应进入版本库或部署上下文。
 __pycache__/
